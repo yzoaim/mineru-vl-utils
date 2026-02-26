@@ -13,7 +13,7 @@ from .structs import BLOCK_TYPES, ContentBlock
 from .vlm_client import DEFAULT_SYSTEM_PROMPT, SamplingParams, new_vlm_client
 from .vlm_client.utils import gather_tasks, get_png_bytes, get_rgb_image
 
-_layout_re = r"^<\|box_start\|>(\d+)\s+(\d+)\s+(\d+)\s+(\d+)<\|box_end\|><\|ref_start\|>(\w+?)<\|ref_end\|>(.*)$"
+_layout_re = r"<\|box_start\|>(\d+)\s+(\d+)\s+(\d+)\s+(\d+)<\|box_end\|><\|ref_start\|>(\w+?)<\|ref_end\|>(.*?)(?=<\|box_start\|>|$)"
 
 
 class MinerUSamplingParams(SamplingParams):
@@ -134,11 +134,7 @@ class MinerUClientHelper:
 
     def parse_layout_output(self, output: str) -> list[ContentBlock]:
         blocks: list[ContentBlock] = []
-        for line in output.split("\n"):
-            match = re.match(_layout_re, line)
-            if not match:
-                print(f"Warning: line does not match layout format: {line}")
-                continue  # Skip invalid lines
+        for match in re.finditer(_layout_re, output, re.DOTALL):
             x1, y1, x2, y2, ref_type, tail = match.groups()
             bbox = _convert_bbox((x1, y1, x2, y2))
             if bbox is None:
